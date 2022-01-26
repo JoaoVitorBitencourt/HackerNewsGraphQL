@@ -1,0 +1,8 @@
+migrate:
+npx prisma migrate dev --name "NomeMigracao"
+
+para executar em outro banco, alterar a string de conexao disponivel em .env DATABASE_URL.
+
+Se por algum motivo você quiser regenerar o Prisma Client, você sempre poderá fazê-lo independentemente de uma migração usando o npx prisma generate.
+
+a cada alteração feita no modelo de dados será necessario migrar o banco e gerar o prisma client.
