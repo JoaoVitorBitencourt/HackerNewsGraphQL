@@ -16,6 +16,41 @@ export const AuthPayload = objectType({
 export const AuthMutation = extendType({
     type: "Mutation",
     definition(t) {
+        t.nonNull.field("login", { 
+            type: "AuthPayload",
+            args: {
+                email: nonNull(stringArg()),
+                password: nonNull(stringArg()),
+            },
+            async resolve(parent, args, context) {
+                // 1
+                const user = await context.prisma.user.findUnique({
+                    where: { email: args.email },
+                });
+                if (!user) {
+                    throw new Error("No such user found");
+                }
+
+                // 2
+                const valid = await bcrypt.compare(
+                    args.password,
+                    user.password,
+                );
+                if (!valid) {
+                    throw new Error("Invalid password");
+                }
+
+                // 3
+                const token = jwt.sign({ userId: user.id }, APP_SECRET);
+
+                // 4
+                return {
+                    token,
+                    user,
+                };
+            },
+        });
+        
         t.nonNull.field("signup", { // 1
             type: "AuthPayload",  
             args: {  
