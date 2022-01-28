@@ -2,20 +2,6 @@ import { extendType, nonNull, objectType, stringArg, intArg, inputObjectType, en
 import { NexusGenObjects } from "../../nexus-typegen";
 import { Prisma } from "@prisma/client"  
 
-export const LinkOrderByInput = inputObjectType({
-    name: "LinkOrderByInput",
-    definition(t) {
-        t.field("description", { type: Sort });
-        t.field("url", { type: Sort });
-        t.field("createdAt", { type: Sort });
-    },
-});
-
-export const Sort = enumType({
-    name: "Sort",
-    members: ["asc", "desc"],
-});
-
 export const Link = objectType({
     name: "Link", // <- Name of your type
     definition(t) {
@@ -42,18 +28,41 @@ export const Link = objectType({
     },
 });
 
+export const Feed = objectType({
+    name: "Feed",
+    definition(t) {
+        t.nonNull.list.nonNull.field("links", { type: Link }); // 1
+        t.nonNull.int("count"); // 2
+    },
+});
+
+export const LinkOrderByInput = inputObjectType({
+    name: "LinkOrderByInput",
+    definition(t) {
+        t.field("description", { type: Sort });
+        t.field("url", { type: Sort });
+        t.field("createdAt", { type: Sort });
+    },
+});
+
+export const Sort = enumType({
+    name: "Sort",
+    members: ["asc", "desc"],
+});
+
+
 export const LinkQuery = extendType({  // 2
     type: "Query",
     definition(t) {
-        t.nonNull.list.nonNull.field("feed", {   // 3
-            type: "Link",
+        t.nonNull.field("feed", {  // 1
+            type: "Feed",
             args: {
                 filter: stringArg(),   // 1
                 skip: intArg(),   // 1
                 take: intArg(),   // 1 
                 orderBy: arg({ type: list(nonNull(LinkOrderByInput)) }),  // 1
             },
-            resolve(parent, args, context) {
+            async resolve(parent, args, context) { 
                 const where = args.filter   // 2
                     ? {
                           OR: [
@@ -62,12 +71,22 @@ export const LinkQuery = extendType({  // 2
                           ],
                       }
                     : {};
-                return context.prisma.link.findMany({
-                    where,
-                    skip: args?.skip as number | undefined,    // 2
-                    take: args?.take as number | undefined,    // 2
-                    orderBy: args?.orderBy as Prisma.Enumerable<Prisma.LinkOrderByWithRelationInput> | undefined,  // 2
-                });
+                    
+                    const links = await context.prisma.link.findMany({  
+                        where,
+                        skip: args?.skip as number | undefined,
+                        take: args?.take as number | undefined,
+                        orderBy: args?.orderBy as
+                            | Prisma.Enumerable<Prisma.LinkOrderByWithRelationInput>
+                            | undefined,
+                    });
+    
+                    const count = await context.prisma.link.count({ where });  // 2
+    
+                    return {  // 3
+                        links,
+                        count,
+                    };
             },
         });
         t.nonNull.field("getLink", {   // 3
