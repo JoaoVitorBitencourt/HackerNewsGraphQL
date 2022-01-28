@@ -34,6 +34,8 @@ export const LinkQuery = extendType({  // 2
             type: "Link",
             args: {
                 filter: stringArg(),   // 1
+                skip: intArg(),   // 1
+                take: intArg(),   // 1 
             },
             resolve(parent, args, context) {
                 const where = args.filter   // 2
@@ -46,6 +48,8 @@ export const LinkQuery = extendType({  // 2
                     : {};
                 return context.prisma.link.findMany({
                     where,
+                    skip: args?.skip as number | undefined,    // 2
+                    take: args?.take as number | undefined,    // 2
                 });
             },
         });
